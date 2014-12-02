@@ -63,7 +63,7 @@ object SbtAdPlugin extends AutoPlugin {
     errors
   }
 
-  private def adRunner: Initialize[Task[ScalaRun]] = Def.task {        
+  def adRunner: Initialize[Task[ScalaRun]] = Def.task {        
     def verifySettings() {
       val errors = ArrayBuffer.empty[String]
       verifyFileSettings(errors, "appDynamicsAgentJar", appDynamicsAgentJar.value)  
