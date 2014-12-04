@@ -8,26 +8,8 @@ import java.io.File
 
 object SbtAdPlugin extends AutoPlugin {
 
-  lazy val defaultNrSettings: Seq[Def.Setting[_]] = Seq(
-    inTask(run)(Seq(runner <<= adRunner)).head,
-
-    mainClass in run <<= mainClass in run in Compile,
-
-    unmanagedClasspath <<= unmanagedClasspath in Runtime,
-    managedClasspath <<= managedClasspath in Runtime,
-    internalDependencyClasspath <<= internalDependencyClasspath in Runtime,
-    externalDependencyClasspath <<= Classpaths.concat(unmanagedClasspath, managedClasspath),
-    dependencyClasspath <<= Classpaths.concat(internalDependencyClasspath, externalDependencyClasspath),
-    exportedProducts <<= exportedProducts in Runtime,
-    fullClasspath <<= Classpaths.concatDistinct(exportedProducts, dependencyClasspath),
-
-    UIKeys.backgroundRunMain <<= SbtBackgroundRunPlugin.backgroundRunMainTask(fullClasspath, runner in run),
-    UIKeys.backgroundRun <<= SbtBackgroundRunPlugin.backgroundRunTask(fullClasspath, mainClass in run, runner in run)
-  )
-
   object autoImport {
     val AppDynamics = config("appdynamics").extend(Compile)
-
     val appDynamicsAgentJar = SettingKey[String]("AppDynamics agent jar file.")
     val appDynamicsAgentTierName = SettingKey[String]("AppDynamics tier name.")
     val appDynamicsAgentNodeName = SettingKey[String]("AppDynamics node name.")
@@ -41,6 +23,22 @@ object SbtAdPlugin extends AutoPlugin {
   }
 
   import autoImport._
+
+  lazy val defaultAdSettings: Seq[Def.Setting[_]] = {
+    Seq(
+      inTask(run)(Seq(runner <<= adRunner)).head,
+      mainClass in run <<= mainClass in run in Compile,
+      unmanagedClasspath <<= unmanagedClasspath in Runtime,
+      managedClasspath <<= managedClasspath in Runtime,
+      internalDependencyClasspath <<= internalDependencyClasspath in Runtime,
+      externalDependencyClasspath <<= Classpaths.concat(unmanagedClasspath, managedClasspath),
+      dependencyClasspath <<= Classpaths.concat(internalDependencyClasspath, externalDependencyClasspath),
+      exportedProducts <<= exportedProducts in Runtime,
+      fullClasspath <<= Classpaths.concatDistinct(exportedProducts, dependencyClasspath),
+      UIKeys.backgroundRunMain <<= SbtBackgroundRunPlugin.backgroundRunMainTask(fullClasspath, runner in run),
+      UIKeys.backgroundRun <<= SbtBackgroundRunPlugin.backgroundRunTask(fullClasspath, mainClass in run, runner in run))
+  }  
+
 
   private def exists(path: String): Boolean = (new File(path)).exists
 
@@ -63,9 +61,10 @@ object SbtAdPlugin extends AutoPlugin {
     errors
   }
 
-  def adRunner: Initialize[Task[ScalaRun]] = Def.task {        
+  def javaOptions: Initialize[Task[Seq[String]]] = Def.task {
     def verifySettings() {
       val errors = ArrayBuffer.empty[String]
+
       verifyFileSettings(errors, "appDynamicsAgentJar", appDynamicsAgentJar.value)  
       verifyParameterSettings(errors, "appDynamicsAgentTierName", appDynamicsAgentTierName.value)
       verifyParameterSettings(errors, "appDynamicsAgentNodeName", appDynamicsAgentNodeName.value)
@@ -84,7 +83,7 @@ object SbtAdPlugin extends AutoPlugin {
 
     verifySettings()
 
-    val adJavaOptions: Seq[String] = Seq(
+    val result = Seq(
       s"-javaagent:${appDynamicsAgentJar.value}",
       s"-Dappdynamics.agent.tierName=${appDynamicsAgentTierName.value}",
       s"-Dappdynamics.agent.nodeName=${appDynamicsAgentNodeName.value}",
@@ -96,12 +95,25 @@ object SbtAdPlugin extends AutoPlugin {
       s"-Dappdynamics.controller.port=${appDynamicsControllerPort.value}",
       s"-Dappdynamics.controller.ssl.enabled=${appDynamicsControllerSslEnabled.value}")
 
-    val forkConfig = ForkOptions(javaHome.value, outputStrategy.value, Seq.empty, Some(baseDirectory.value), adJavaOptions, connectInput.value)
-        
-    if (fork.value) new ForkRun(forkConfig) else throw new RuntimeException("This plugin can only be run in forked mode")
+    println(s"JavaOptions: ${result}")
+
+    result
   }
 
-  override def requires = sbt.SbtUIPlugin
+  private[ad] def adRunner: Initialize[Task[ScalaRun]] = Def.task {     
+    val forkConfig = 
+      ForkOptions(
+        javaHome.value, 
+        outputStrategy.value, 
+        Seq.empty, 
+        Some(baseDirectory.value), 
+        javaOptions.value, 
+        connectInput.value)        
+    if (fork.value) new ForkRun(forkConfig) 
+    else throw new RuntimeException("This plugin can only be run in forked mode")
+  }
+
+  override def requires = sbt.SbtBackgroundRunPlugin
 
   override def trigger = allRequirements
 
@@ -117,5 +129,5 @@ object SbtAdPlugin extends AutoPlugin {
       appDynamicsControllerHostName := "",
       appDynamicsControllerPort := "",
       appDynamicsControllerSslEnabled := "") ++
-    inConfig(AppDynamics)(defaultNrSettings)
+    inConfig(AppDynamics)(defaultAdSettings)
 }

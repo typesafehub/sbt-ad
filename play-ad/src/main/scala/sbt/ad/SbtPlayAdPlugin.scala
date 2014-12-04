@@ -2,20 +2,32 @@ package sbt.ad
 
 import sbt._
 import Keys._
-import play.PlayInternalKeys
+import play.{Play, PlayInternalKeys}
 
 object SbtAdPlayPlugin extends AutoPlugin with PlayInternalKeys {
-  import SbtAdPlugin._
+  import SbtAdPlugin.autoImport._
+
+  object autoImport {
+    val AppDynamicsPlay = config("appdynamicsplay").extend(AppDynamics)
+    val adPlayRunner = taskKey[BackgroundJobHandle]("Run play dev-mode runner with AppDynamics agent")
+  }
+
+  import autoImport._
 
   override def trigger = AllRequirements
 
-  override def requires = SbtAdPlugin
+  override def requires = SbtAdPlugin && Play
 
-  lazy val defaultNrSettings: Seq[Def.Setting[_]] = Seq(
-    inTask(run)(Seq(runner <<= SbtAdPlugin.adRunner)).head,
+  lazy val defaultAdPlaySettings: Seq[Def.Setting[_]] = {
+    Seq(adPlayRunner <<= adPlayRunnerTask) ++
+  	Seq(
+      UIKeys.backgroundRunMain in ThisProject := adPlayRunner.value,
+      UIKeys.backgroundRun in ThisProject := adPlayRunner.value)
+  }
 
-    UIKeys.backgroundRunMain in ThisProject := playBackgroundRunTaskBuilder.value((Keys.javaOptions in Runtime).value),
+  def adPlayRunnerTask(): Def.Initialize[Task[BackgroundJobHandle]] = Def.task {
+    playBackgroundRunTaskBuilder.value(SbtAdPlugin.javaOptions.value)
+  } 
 
-    UIKeys.backgroundRun in ThisProject := playBackgroundRunTaskBuilder.value((Keys.javaOptions in Runtime).value)
-  )
+  override def projectSettings = inConfig(AppDynamicsPlay)(defaultAdPlaySettings) ++ SbtAdPlugin.projectSettings
 }
