@@ -25,7 +25,7 @@ object SbtAdPlayPlugin extends AutoPlugin with PlayInternalKeys {
       UIKeys.backgroundRun in ThisProject := adPlayRunner.value)
   }
 
-  def adPlayRunnerTask(): Def.Initialize[Task[BackgroundJobHandle]] = Def.task {
+  def adPlayRunnerTask: Def.Initialize[Task[BackgroundJobHandle]] = Def.task {
     playBackgroundRunTaskBuilder.value(SbtAdPlugin.javaOptions.value)
   } 
 
