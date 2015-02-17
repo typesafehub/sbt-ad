@@ -5,6 +5,8 @@ import Keys._
 import Def.Initialize
 import scala.collection.mutable.ArrayBuffer
 import java.io.File
+import sbt.plugins.BackgroundRunPlugin
+import sbt.BackgroundJobServiceKeys
 
 object SbtAdPlugin extends AutoPlugin {
 
@@ -35,9 +37,9 @@ object SbtAdPlugin extends AutoPlugin {
       dependencyClasspath <<= Classpaths.concat(internalDependencyClasspath, externalDependencyClasspath),
       exportedProducts <<= exportedProducts in Runtime,
       fullClasspath <<= Classpaths.concatDistinct(exportedProducts, dependencyClasspath),
-      UIKeys.backgroundRunMain <<= SbtBackgroundRunPlugin.backgroundRunMainTask(fullClasspath, runner in run),
-      UIKeys.backgroundRun <<= SbtBackgroundRunPlugin.backgroundRunTask(fullClasspath, mainClass in run, runner in run))
-  }  
+      BackgroundJobServiceKeys.backgroundRunMain <<= BackgroundRunPlugin.backgroundRunMainTask(fullClasspath, runner in run),
+      BackgroundJobServiceKeys.backgroundRun <<= BackgroundRunPlugin.backgroundRunTask(fullClasspath, mainClass in run, runner in run))
+  }
 
 
   private def exists(path: String): Boolean = (new File(path)).exists
@@ -46,7 +48,7 @@ object SbtAdPlugin extends AutoPlugin {
    if (settingPath == "") {
       errors += "Set '" + settingName + " in AppDynamics := \"<filename>\"' in your build to the location of the file."
     } else if (!exists(settingPath)) {
-      errors += "The specified file '" + settingPath + 
+      errors += "The specified file '" + settingPath +
         "' does not exist. Please make sure the location is correctly set with '" + settingName + " in AppDynamics := \"<filename>\"'"
     }
 
@@ -65,20 +67,20 @@ object SbtAdPlugin extends AutoPlugin {
     def verifySettings() {
       val errors = ArrayBuffer.empty[String]
 
-      verifyFileSettings(errors, "appDynamicsAgentJar", appDynamicsAgentJar.value)  
+      verifyFileSettings(errors, "appDynamicsAgentJar", appDynamicsAgentJar.value)
       verifyParameterSettings(errors, "appDynamicsAgentTierName", appDynamicsAgentTierName.value)
       verifyParameterSettings(errors, "appDynamicsAgentNodeName", appDynamicsAgentNodeName.value)
       verifyParameterSettings(errors, "appDynamicsAgentApplicationName", appDynamicsAgentApplicationName.value)
-      verifyFileSettings(errors, "appDynamicsAgentRuntimeDir", appDynamicsAgentRuntimeDir.value)  
+      verifyFileSettings(errors, "appDynamicsAgentRuntimeDir", appDynamicsAgentRuntimeDir.value)
       verifyParameterSettings(errors, "appDynamicsAgentAccountName", appDynamicsAgentAccountName.value)
-      verifyParameterSettings(errors, "appDynamicsAgentAccountAccessKey", appDynamicsAgentAccountAccessKey.value)  
-      verifyParameterSettings(errors, "appDynamicsControllerHostName", appDynamicsControllerHostName.value)  
-      verifyParameterSettings(errors, "appDynamicsControllerPort", appDynamicsControllerPort.value)  
-      verifyParameterSettings(errors, "appDynamicsControllerSslEnabled", appDynamicsControllerSslEnabled.value)  
+      verifyParameterSettings(errors, "appDynamicsAgentAccountAccessKey", appDynamicsAgentAccountAccessKey.value)
+      verifyParameterSettings(errors, "appDynamicsControllerHostName", appDynamicsControllerHostName.value)
+      verifyParameterSettings(errors, "appDynamicsControllerPort", appDynamicsControllerPort.value)
+      verifyParameterSettings(errors, "appDynamicsControllerSslEnabled", appDynamicsControllerSslEnabled.value)
 
       if (errors.size > 0) {
         throw new RuntimeException(errors.mkString("\n"))
-      } 
+      }
     }
 
     verifySettings()
@@ -100,24 +102,24 @@ object SbtAdPlugin extends AutoPlugin {
     result
   }
 
-  private[ad] def adRunner: Initialize[Task[ScalaRun]] = Def.task {     
-    val forkConfig = 
+  private[ad] def adRunner: Initialize[Task[ScalaRun]] = Def.task {
+    val forkConfig =
       ForkOptions(
-        javaHome.value, 
-        outputStrategy.value, 
-        Seq.empty, 
-        Some(baseDirectory.value), 
-        javaOptions.value, 
-        connectInput.value)        
-    if (fork.value) new ForkRun(forkConfig) 
+        javaHome.value,
+        outputStrategy.value,
+        Seq.empty,
+        Some(baseDirectory.value),
+        javaOptions.value,
+        connectInput.value)
+    if (fork.value) new ForkRun(forkConfig)
     else throw new RuntimeException("This plugin can only be run in forked mode")
   }
 
-  override def requires = sbt.SbtBackgroundRunPlugin
+  override def requires = BackgroundRunPlugin
 
   override def trigger = allRequirements
 
-  override val projectSettings = 
+  override val projectSettings =
     Seq(
       appDynamicsAgentJar := "",
       appDynamicsAgentTierName := "",

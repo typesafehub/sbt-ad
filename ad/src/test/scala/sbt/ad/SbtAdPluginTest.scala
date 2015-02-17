@@ -1,6 +1,6 @@
 package sbt.ad
 
-import org.junit.{ Test, Rule }
+import org.junit.Test
 import org.junit.Assert._
 import scala.collection.mutable.ArrayBuffer
 
