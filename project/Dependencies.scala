@@ -2,6 +2,14 @@ import sbt._
 import Keys._
 
 object Dependencies {
-  def playPlugin = Defaults.sbtPluginExtra("com.typesafe.play" % "sbt-plugin" % "2.3.8-2de45b3774b6757f4aae980f8b5b152c1d2b73a5", "0.13", "2.10")
-  def uiPlugin = Defaults.sbtPluginExtra("com.typesafe.sbtrc" % "ui-interface-0-13" % "1.0-43891de56b625f1c0e810348360fee05a22445bf", "0.13", "2.10")
+  object V {
+    val playVersion = "2.3.8"
+    val sbtCoreNextVersion = "0.1.1"
+  }
+
+  def sbtPluginExtra(module:ModuleID):ModuleID =
+    Defaults.sbtPluginExtra(module, "0.13", "2.10")
+
+  def playForkRunPlugin = sbtPluginExtra("com.typesafe.play" % "sbt-fork-run-plugin" % V.playVersion)
+  def sbtCoreNextPlugin = sbtPluginExtra("org.scala-sbt" % "sbt-core-next" % V.sbtCoreNextVersion)
 }

@@ -14,10 +14,10 @@ object SbtAdBuild extends Build {
 
   lazy val sbtAdMain = Project(
     id = "sbt-ad-main",
-    base = file("ad"),    
+    base = file("ad"),
     settings = defaultSettings ++ Seq(
       name := "sbt-ad-main",
-      libraryDependencies ++= Seq(Dependencies.uiPlugin)
+      libraryDependencies ++= Seq(Dependencies.sbtCoreNextPlugin)
     )
   )
 
@@ -27,9 +27,9 @@ object SbtAdBuild extends Build {
     dependencies = Seq(sbtAdMain),
     settings = defaultSettings ++ Seq(
       name := "sbt-ad-play",
-      libraryDependencies ++= Seq(Dependencies.playPlugin)
+      libraryDependencies ++= Seq(Dependencies.playForkRunPlugin)
     )
-  )  
+  )
 
   lazy val typesafeIvyReleases = Resolver.url("Typesafe Ivy Releases Repo", new URL("http://repo.typesafe.com/typesafe/releases/"))(Resolver.ivyStylePatterns)
 
@@ -41,8 +41,8 @@ object SbtAdBuild extends Build {
     version <<= version in ThisBuild,
     publishMavenStyle := false,
     publishTo := Some(typesafeIvySnapshots),
-    resolvers += typesafeIvyReleases      
-  )  
+    resolvers += typesafeIvyReleases
+  )
 
   lazy val noPublishSettings: Seq[Setting[_]] = Seq(
     publish := {},
