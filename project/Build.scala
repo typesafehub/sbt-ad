@@ -41,7 +41,8 @@ object SbtAdBuild extends Build {
     version <<= version in ThisBuild,
     publishMavenStyle := false,
     publishTo := Some(typesafeIvySnapshots),
-    resolvers += typesafeIvyReleases
+    resolvers += typesafeIvyReleases,
+    libraryDependencies ++= Seq(Dependencies.junit, Dependencies.junitInterface)
   )
 
   lazy val noPublishSettings: Seq[Setting[_]] = Seq(
